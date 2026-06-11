@@ -1,0 +1,574 @@
+.layout {
+  display: flex;
+  height: 100vh; /* Fixed height for layout */
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Linear Sidebar */
+.sidebar {
+  width: 240px;
+  background: rgba(0, 0, 0, 0.5); /* Transparent to show dots */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid var(--border-glass);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100vh;
+  z-index: 50;
+  transition: margin-left 0.2s ease-out;
+}
+
+.sidebarClosed {
+  margin-left: -240px; /* Instead of transform, for smoother reflow */
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandLogo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.3), inset 0 0 12px rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.brandLogo::after {
+  content: "";
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(255,255,255,0.8);
+}
+
+.brandLogoSmall {
+  width: 32px;
+  height: 32px;
+  border-width: 1px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+.brandLogoSmall::after {
+  width: 10px;
+  height: 10px;
+}
+
+/* Cinematic Burst Elements */
+.flashGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  box-shadow: 0 0 400px 300px rgba(255, 255, 255, 1);
+  transform: translate(-50%, -50%);
+  z-index: 9;
+  pointer-events: none;
+}
+
+/* Top Center Header */
+.topCenterHeader {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+.navMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navGroup {
+  margin-top: 24px;
+  color: #666;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.navItem {
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.navItem.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.mainContentWrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow-y: auto; /* Allow middle section to scroll */
+}
+
+.mainContent {
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 900px;
+  min-height: 100%;
+}
+
+/* Right Sidebar (Activity Feed) */
+.rightSidebar {
+  width: 300px;
+  background: rgba(0, 0, 0, 0.5); /* Transparent to show dots */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-left: 1px solid var(--border-glass);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+}
+
+.rightSidebarTitle {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.activityFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.activityItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #444;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.activityDot.success { background: #4caf50; }
+.activityDot.warning { background: #ff9800; }
+.activityDot.info { background: #2196f3; }
+
+.activityContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activityText {
+  font-size: 0.85rem;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.activityTime {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+/* Header */
+.topHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.toggleBtn {
+  color: var(--text-secondary);
+  padding: 6px;
+  border-radius: 4px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Keyboard Hints */
+.kbdHint {
+  background: #222;
+  border: 1px solid #333;
+  color: #888;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+/* KPIs */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.kpiCard {
+  background: rgba(5,5,5,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass);
+  padding: 16px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.1s ease;
+}
+
+.kpiCard:hover {
+  border-color: #444;
+}
+
+.kpiLabel {
+  color: #888;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpiValue {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Chat Interface */
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1; /* Takes up remaining height */
+  min-height: 0;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-right: 12px;
+}
+
+.message {
+  padding: 0;
+  max-width: 85%;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: rgba(17,17,17,0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid #222;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.message.ai {
+  align-self: flex-start;
+  color: #ccc;
+}
+
+/* Floating Command Menu (Linear Style) - FIXED LAYOUT */
+.chatInputWrapper {
+  display: flex;
+  gap: 12px;
+  background: #0a0a0a;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
+  align-items: center;
+  margin-top: auto; /* Pushes to bottom natively */
+}
+
+/* Quick Actions - FIXED LAYOUT */
+.quickActionsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.quickActionCard {
+  background: rgba(10,10,10,0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid #222;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.quickActionCard:hover {
+  background: #111;
+  color: #fff;
+  border-color: #444;
+  transform: translateY(-2px);
+}
+
+.quickActionTitle {
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Campaign Preview Card */
+.previewCard {
+  background: rgba(5,5,5,0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid #222;
+  padding: 20px;
+  border-radius: 6px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.previewStat {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: white;
+}
+
+.previewActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #222;
+}
+
+/* Linear Hover Cards */
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.hoverCard {
+  background: rgba(5,5,5,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  transition: background 0.1s;
+}
+
+.hoverCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    400px circle at var(--mouse-x) var(--mouse-y),
+    rgba(255, 255, 255, 0.15),
+    transparent 40%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.hoverCard:hover {
+  background: #0a0a0a;
+}
+
+.appIcon {
+  width: 32px;
+  height: 32px;
+  background: #111;
+  border-radius: 4px;
+  border: 1px solid #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Settings Form */
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 600px;
+}
+
+.settingGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settingDesc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Toggle Switch */
+.toggleSwitch {
+  width: 36px;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.toggleSwitch.on {
+  background: #fff;
+}
+
+.toggleKnob {
+  width: 14px;
+  height: 14px;
+  background: #888;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: all 0.1s;
+}
+
+.toggleSwitch.on .toggleKnob {
+  background: #000;
+  left: 19px;
+}
+
+/* Splash */
+.splashScreen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.splashContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+.splashLogoContainer {
+  display: flex;
+  overflow: hidden;
+}
+.splashLetter {
+  font-size: 2rem;
+  font-weight: 500;
+  color: white;
+  letter-spacing: 4px;
+}
+.loadingBarContainer {
+  width: 200px;
+  height: 2px;
+  background: #222;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loadingBarProgress {
+  height: 100%;
+  background: #fff;
+}
