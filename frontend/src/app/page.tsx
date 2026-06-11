@@ -37,7 +37,7 @@ const initialActivities = [
 ];
 
 export default function Home() {
-  const [introState, setIntroState] = useState<'loading' | 'ascending' | 'flashing' | 'done'>('loading');
+  const [introState, setIntroState] = useState<'loading' | 'expanding' | 'flashing' | 'done'>('loading');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("chat");
   const [messages, setMessages] = useState<Message[]>([]);
