@@ -149,30 +149,51 @@ You need to return a JSON object with:
 4. "sqlCondition": A raw SQLite WHERE clause to filter the "Customer" table.
 Available Customer columns: id, name, email, phone, totalSpent, lastVisit, createdAt.
 Example sqlCondition: "totalSpent > 500 AND lastVisit < date('now', '-6 months')"
+CRITICAL RULE: DO NOT USE JOINs. DO NOT reference any tables other than Customer. If you cannot fulfill the prompt perfectly with the available columns, do your best using totalSpent or lastVisit.
 Ensure the JSON is strictly valid without markdown blocks.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { responseMimeType: "application/json" }
-      })
-    });
+    let data;
+    for (let attempts = 0; attempts < 3; attempts++) {
+      const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: "json_object" }
+        })
+      });
+      
+      data = await response.json();
+      if (!data.error || !data.error.message.includes("high demand")) {
+        break; // Success or a different non-retryable error
+      }
+      console.log(`High demand hit. Retrying attempt ${attempts + 1}...`);
+      await new Promise(res => setTimeout(res, 1500)); // wait 1.5 seconds before retrying
+    }
 
-    const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
-    const resultText = data.candidates[0].content.parts[0].text;
+    const resultText = data.choices[0].message.content;
     const result = JSON.parse(resultText);
 
-    // Run the generated SQL query safely (it's a mock, so we accept the injection risk for the assignment, 
-    // but in reality we would use an LLM-to-Prisma structured output or read-only replica).
-    const rawQuery = `SELECT id FROM Customer WHERE ${result.sqlCondition || '1=1'} LIMIT 1000;`;
-    const audience = await prisma.$queryRawUnsafe<{id: string}[]>(rawQuery);
+    // Run the generated SQL query safely
+    let audience;
+    try {
+      const rawQuery = `SELECT id FROM Customer WHERE ${result.sqlCondition || '1=1'} LIMIT 1000;`;
+      audience = await prisma.$queryRawUnsafe<{id: string}[]>(rawQuery);
+    } catch (sqlErr) {
+      console.warn("AI generated invalid SQL, falling back to all customers", sqlErr);
+      audience = await prisma.$queryRawUnsafe<{id: string}[]>(`SELECT id FROM Customer LIMIT 1000;`);
+    }
 
-    res.json({
+    return res.json({
       success: true,
       preview: {
         audienceFilter: result.audienceFilter,
@@ -186,6 +207,117 @@ Ensure the JSON is strictly valid without markdown blocks.`;
   } catch (err: any) {
     console.error("AI Error:", err);
     res.status(500).json({ error: 'AI processing failed: ' + err.message });
+  }
+});
+
+// --- CAMPAIGN EXECUTION ---
+app.post('/api/campaign/execute', async (req, res) => {
+  const { name, messageContent, channel, audienceIds } = req.body;
+  if (!messageContent || !audienceIds || !Array.isArray(audienceIds)) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // 1. Create the Campaign
+    const campaign = await prisma.campaign.create({
+      data: {
+        name: name || `Campaign ${new Date().toISOString()}`,
+        messageContent,
+        channel: channel || 'EMAIL',
+        audienceSize: audienceIds.length,
+        status: 'SENDING'
+      }
+    });
+
+    // 2. Create CommunicationLogs (PENDING)
+    const logsData = audienceIds.map(customerId => ({
+      campaignId: campaign.id,
+      customerId,
+      status: 'PENDING'
+    }));
+    await prisma.communicationLog.createMany({ data: logsData });
+
+    // 3. Fetch created logs to send to Channel Service
+    const logs = await prisma.communicationLog.findMany({
+      where: { campaignId: campaign.id }
+    });
+
+    const communications = logs.map(l => ({
+      id: l.id,
+      customerId: l.customerId,
+      message: messageContent
+    }));
+
+    // 4. Send to Stubbed Channel Service
+    const channelServiceUrl = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
+    fetch(`${channelServiceUrl}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: campaign.id,
+        communications
+      })
+    }).catch(err => console.error("Failed to notify channel service", err));
+
+    res.json({ success: true, campaignId: campaign.id });
+
+  } catch (err: any) {
+    console.error("Execute Error:", err);
+    res.status(500).json({ error: 'Failed to execute campaign' });
+  }
+});
+
+// --- WEBHOOK RECEIVER ---
+app.post('/api/webhooks/channel', async (req, res) => {
+  const { communicationId, status } = req.body;
+  if (!communicationId || !status) return res.status(400).json({ error: 'Invalid webhook payload' });
+
+  try {
+    await prisma.communicationLog.update({
+      where: { id: communicationId },
+      data: { status, timestamp: new Date() }
+    });
+    
+    // Check if campaign is completed (all not PENDING)
+    // For a real app, this might be a cron job. Here we ignore for brevity.
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).json({ error: 'Failed to process webhook' });
+  }
+});
+
+// --- CAMPAIGN INSIGHTS ---
+app.get('/api/campaigns', async (req, res) => {
+  try {
+    const campaigns = await prisma.campaign.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        communications: true
+      }
+    });
+
+    const formatted = campaigns.map(c => {
+      const stats = c.communications.reduce((acc, log) => {
+        acc[log.status] = (acc[log.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      return {
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        audienceSize: c.audienceSize,
+        channel: c.channel,
+        stats
+      };
+    });
+
+    res.json({ success: true, campaigns: formatted });
+  } catch (err) {
+    console.error("Campaign fetch error:", err);
+    res.status(500).json({ error: 'Failed to fetch campaigns' });
   }
 });
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Terminal, BarChart2, Send, Play, RefreshCcw, PanelLeftClose, PanelLeftOpen, Users, Settings, Zap, Target, Mailbox, Activity, ShoppingCart, Megaphone, Cloud, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Terminal, BarChart2, Send, Play, RefreshCcw, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Users, Settings, Zap, Target, Mailbox, Activity, ShoppingCart, Megaphone, Cloud, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./page.module.css";
 
 type Message = {
@@ -39,6 +39,7 @@ const initialActivities = [
 export default function Home() {
   const [introState, setIntroState] = useState<'loading' | 'expanding' | 'flashing' | 'done'>('loading');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -91,6 +92,10 @@ export default function Home() {
       if (e.key === '[') {
         e.preventDefault();
         setIsSidebarOpen(prev => !prev);
+      }
+      if (e.key === ']') {
+        e.preventDefault();
+        setIsActivityOpen(prev => !prev);
       }
     };
 
@@ -166,7 +171,7 @@ export default function Home() {
 
   const handleLaunchCampaign = async (preview: CampaignPreview, msgId: string) => {
     try {
-      const res = await fetch("http://localhost:3001/api/campaigns/send", {
+      const res = await fetch("http://localhost:3001/api/campaign/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -275,12 +280,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {introState === 'done' && (
-        <div className={styles.topCenterHeader}>
-          <motion.div layoutId="sharedLogo" className={`${styles.brandLogo} ${styles.brandLogoSmall}`} />
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.8}} className={styles.logo}>xeno</motion.div>
-        </div>
-      )}
+
 
       {introState === 'done' && (
         <motion.div 
@@ -338,8 +338,12 @@ export default function Home() {
           </div>
 
           {/* Right Sidebar (Activity Feed) */}
-          <div className={styles.rightSidebar}>
+          <div className={`${styles.rightSidebar} ${!isActivityOpen ? styles.rightSidebarClosed : ''}`}>
             <div className={styles.rightSidebarTitle}>
+              <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(false)} style={{ float: 'right', marginTop: '-4px', marginRight: '-8px' }}>
+                <PanelRightClose size={16} />
+                <span className={styles.kbdHint}>]</span>
+              </button>
               <Activity size={12} style={{ display: 'inline', marginRight: '6px', marginBottom: '-2px' }} />
               Live Activity
             </div>
@@ -366,6 +370,13 @@ export default function Home() {
           <div className={`${styles.mainContentWrapper} ${!isSidebarOpen ? styles.mainContentWrapperExpanded : ''}`}>
             <div className={styles.mainContent}>
               
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                <div className={styles.topCenterHeader} style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+                  <motion.div layoutId="sharedLogo" className={`${styles.brandLogo} ${styles.brandLogoSmall}`} />
+                  <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.8}} className={styles.logo}>xeno</motion.div>
+                </div>
+              </div>
+
               <div className={styles.topHeader}>
                 {!isSidebarOpen && (
                   <button className={styles.toggleBtn} onClick={() => setIsSidebarOpen(true)}>
@@ -379,6 +390,13 @@ export default function Home() {
                    activeTab === 'customers' ? 'Customer Directory' : 
                    activeTab === 'integrations' ? 'Integrations' : 'Settings'}
                 </h1>
+                <div style={{ flex: 1 }} />
+                {!isActivityOpen && (
+                  <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(true)}>
+                    <span className={styles.kbdHint}>]</span>
+                    <PanelRightOpen size={16} />
+                  </button>
+                )}
               </div>
 
               {activeTab === 'chat' && (
@@ -519,52 +537,90 @@ export default function Home() {
               )}
 
               {activeTab === 'campaigns' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <div className="glassPanel">
-                    <div className="tableContainer">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Campaign Name</th>
-                            <th>Audience Size</th>
-                            <th>Delivered</th>
-                            <th>Opened</th>
-                            <th>Failed</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <AnimatePresence>
-                            {campaigns.map((camp) => (
-                              <motion.tr key={camp.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                <td style={{ fontWeight: 500 }}>{camp.name}</td>
-                                <td style={{ color: 'var(--text-secondary)' }}>{camp.audienceSize}</td>
-                                <td>
-                                  <div className="statusPill success">
-                                    {camp.stats['DELIVERED'] || 0}
-                                  </div>
-                                </td>
-                                <td>
-                                  <div className="statusPill warning">
-                                    {camp.stats['OPENED'] || 0}
-                                  </div>
-                                </td>
-                                <td>
-                                  <div className="statusPill danger">
-                                    {camp.stats['FAILED'] || 0}
-                                  </div>
-                                </td>
-                              </motion.tr>
-                            ))}
-                          </AnimatePresence>
-                          {campaigns.length === 0 && (
-                            <tr>
-                              <td colSpan={5} style={{textAlign: 'center', color: 'var(--text-secondary)', padding: '40px'}}>No records found.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.campaignsDashboard} style={{ paddingBottom: '120px' }}>
+                  <div className={styles.dashboardHeader}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 500 }}>Live Campaign Funnels</h2>
+                    <p style={{ color: '#888', fontSize: '0.85rem' }}>Real-time delivery and engagement insights</p>
                   </div>
+                  
+                  {campaigns.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px', color: '#666', border: '1px dashed #333', borderRadius: '8px' }}>
+                      <Activity size={32} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
+                      <p>No active campaigns yet. Ask the AI to launch one.</p>
+                    </div>
+                  ) : (
+                    <div className={styles.campaignGrid}>
+                      <AnimatePresence>
+                        {campaigns.map((camp) => {
+                          const total = camp.audienceSize || 1;
+                          const delivered = camp.stats['DELIVERED'] || 0;
+                          const opened = camp.stats['OPENED'] || 0;
+                          const clicked = camp.stats['CLICKED'] || 0;
+                          const failed = camp.stats['FAILED'] || 0;
+                          
+                          return (
+                            <motion.div 
+                              key={camp.id} 
+                              className={styles.campaignCard}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              layout
+                            >
+                              <div className={styles.cardHeader}>
+                                <div>
+                                  <h3 style={{ fontSize: '1rem', fontWeight: 500 }}>{camp.name}</h3>
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                                    <span className="statusPill success">{camp.channel}</span>
+                                    <span className="statusPill" style={{background: '#111', color: '#888'}}>{total} Targets</span>
+                                  </div>
+                                </div>
+                                <div className={styles.statusIndicator}>
+                                  {camp.status === 'SENDING' ? <RefreshCcw size={14} className={styles.spin} /> : <CheckCircle2 size={14} color="#4ade80" />}
+                                </div>
+                              </div>
+                              
+                              <div className={styles.funnelContainer}>
+                                <div className={styles.funnelRow}>
+                                  <div className={styles.funnelLabel}>Sent</div>
+                                  <div className={styles.funnelBarBg}>
+                                    <motion.div className={styles.funnelBarFill} style={{background: '#444'}} initial={{width:0}} animate={{width: '100%'}} />
+                                  </div>
+                                  <div className={styles.funnelValue}>{total}</div>
+                                </div>
+                                <div className={styles.funnelRow}>
+                                  <div className={styles.funnelLabel}>Delivered</div>
+                                  <div className={styles.funnelBarBg}>
+                                    <motion.div className={styles.funnelBarFill} style={{background: '#3b82f6'}} initial={{width:0}} animate={{width: `${Math.min(100, (delivered/total)*100)}%`}} />
+                                  </div>
+                                  <div className={styles.funnelValue}>{delivered}</div>
+                                </div>
+                                <div className={styles.funnelRow}>
+                                  <div className={styles.funnelLabel}>Opened</div>
+                                  <div className={styles.funnelBarBg}>
+                                    <motion.div className={styles.funnelBarFill} style={{background: '#8b5cf6'}} initial={{width:0}} animate={{width: `${Math.min(100, (opened/total)*100)}%`}} />
+                                  </div>
+                                  <div className={styles.funnelValue}>{opened}</div>
+                                </div>
+                                <div className={styles.funnelRow}>
+                                  <div className={styles.funnelLabel}>Clicked</div>
+                                  <div className={styles.funnelBarBg}>
+                                    <motion.div className={styles.funnelBarFill} style={{background: '#10b981'}} initial={{width:0}} animate={{width: `${Math.min(100, (clicked/total)*100)}%`}} />
+                                  </div>
+                                  <div className={styles.funnelValue}>{clicked}</div>
+                                </div>
+                              </div>
+                              
+                              {failed > 0 && (
+                                <div style={{ marginTop: '16px', fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <AlertCircle size={12} /> {failed} deliveries failed
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </motion.div>
               )}
 

@@ -153,7 +153,7 @@
 }
 
 .mainContent {
-  padding: 32px 40px;
+  padding: 32px 40px 100px 40px; /* Extra padding at bottom to prevent cutoff */
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -571,4 +571,147 @@
 .loadingBarProgress {
   height: 100%;
   background: #fff;
+}
+.campaignsDashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.campaignGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.campaignCard {
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spin {
+  animation: spin 2s linear infinite;
+  color: #888;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.funnelContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.funnelRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.funnelLabel {
+  width: 70px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.funnelBarBg {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.funnelBarFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.funnelValue {
+  width: 40px;
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Mobile & Right Sidebar Toggle Styles */
+
+.rightSidebar {
+  transition: margin-right 0.2s ease-out;
+}
+
+.rightSidebarClosed {
+  margin-right: -300px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    height: 100vh;
+  }
+  
+  .rightSidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 100;
+  }
+
+  .mainContent {
+    padding: 16px;
+  }
+
+  .campaignGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .kpiRow {
+    flex-direction: column;
+  }
+
+  .quickActionsContainer {
+    grid-template-columns: 1fr;
+  }
 }
