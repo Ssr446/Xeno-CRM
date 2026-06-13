@@ -1,38 +1,53 @@
-# Xeno CRM: Enterprise AI Orchestration Platform
+# Xeno CRM: Enterprise AI Orchestration Platform 🚀
 
-![Xeno CRM Hero Image Placeholder](Insert_Hero_Image_URL_Here)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://xeno-crm-bice-kappa.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.0-black?style=for-the-badge&logo=next.js)]()
+[![Node.js](https://img.shields.io/badge/Node.js-Backend-green?style=for-the-badge&logo=node.js)]()
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-blue?style=for-the-badge&logo=prisma)]()
+[![Socket.io](https://img.shields.io/badge/Socket.io-WebSockets-black?style=for-the-badge&logo=socket.io)]()
 
-A modern, highly interactive Customer Relationship Management platform featuring a cinematic user interface, real-time WebSocket communication, and an autonomous Multi-Agent AI architecture.
+<!-- 🖼️ PLACEHOLDER: HERO IMAGE / BANNER (Upload your image to the repository and name it 'hero_banner.png') -->
+<div align="center">
+  <img src="hero_banner.png" alt="Xeno CRM Hero Banner">
+</div>
 
-## 🌐 Live Deployments
-- **Frontend (Vercel):** [https://xeno-crm-bice-kappa.vercel.app](https://xeno-crm-bice-kappa.vercel.app)
-- **Backend API (Render):** [https://xeno-crm-st4n.onrender.com](https://xeno-crm-st4n.onrender.com)
+<br>
+
+**Xeno CRM** is a modern, highly interactive Customer Relationship Management platform featuring a cinematic user interface, real-time WebSocket communication, and an autonomous Multi-Agent AI architecture. Designed with a "Nothing Tech" glassmorphic aesthetic, it delivers a premium, enterprise-grade experience.
+
+---
+
+## 🌟 Live Demo
+Experience the full-stack application deployed live on the cloud:
+
+👉 **[Try Xeno CRM Live Here (Frontend)](https://xeno-crm-bice-kappa.vercel.app/)**  
+👉 **[Backend API Endpoint (Render)](https://xeno-crm-st4n.onrender.com)**
+
+<!-- 🖼️ PLACEHOLDER: APPLICATION DEMO GIF / SCREENSHOT (Upload your GIF/Image to the repository and name it 'demo.png') -->
+<div align="center">
+  <br>
+  <img src="demo.png" alt="Xeno CRM Demo">
+  <p><i>Example of Xeno CRM's cinematic interface and Multi-Agent AI in action.</i></p>
+</div>
 
 ---
 
 ## ✨ Key Business Features
 
-### 1. Multi-Agent AI Architecture
-Instead of relying on a single large prompt, Xeno CRM utilizes an advanced **Multi-Agent** design. When a user submits a campaign prompt, a master Orchestrator AI delegates tasks to three specialized sub-agents:
-- **Query Agent:** Translates human intent into raw SQLite database queries.
-- **Copywriter Agent:** Drafts personalized, high-converting marketing copy for the campaign.
-- **Audience Agent:** Analyzes the target demographic and calculates total audience size.
-
-### 2. Real-Time WebSocket Infrastructure
-The platform replaces traditional HTTP polling with persistent **Socket.io WebSockets**. As the AI agents work in the background, live campaign status updates (Drafting → Generating Audience → Executing) are pushed instantly to the user's dashboard without refreshing the page.
-
-### 3. P-Queue Concurrency Control
-To prevent rate-limiting and ensure 100% deliverability on massive campaigns, the backend utilizes `p-queue` to artificially control the concurrency of outgoing requests (e.g. simulating email/SMS dispatches at 5 requests per second). 
-
-![AI Agents Dashboard Placeholder](Insert_Dashboard_Image_URL_Here)
+- **Multi-Agent AI Architecture:** Instead of relying on a single large prompt, an Orchestrator AI delegates tasks to specialized sub-agents:
+  - **Query Agent:** Translates human intent into raw SQLite database queries.
+  - **Copywriter Agent:** Drafts personalized, high-converting marketing copy.
+  - **Audience Agent:** Analyzes the demographic and calculates audience size.
+- **Real-Time WebSocket Infrastructure:** Replaces traditional HTTP polling with persistent **Socket.io WebSockets**. Live campaign status updates (Drafting → Generating Audience → Executing) are pushed instantly to the dashboard.
+- **P-Queue Concurrency Control:** Prevents rate-limiting and ensures 100% deliverability on massive campaigns by artificially controlling the concurrency of outgoing requests (e.g., simulating 5 requests/second).
 
 ---
 
 ## 🔒 Enterprise Security Aspects
 
-1. **AI Output Sanitization:** The execution of AI-generated SQL queries is strictly sandboxed. The backend validates and sanitizes all generated queries to prevent SQL Injection (SQLi) attacks. The system enforces strict `SELECT`-only permissions during execution.
-2. **Environment Variable Protection:** All API Keys (Groq/Gemini API) and internal Database URLs are stripped from the source code and securely injected via Vercel/Render encrypted Environment Variables.
-3. **CORS Configuration:** Cross-Origin Resource Sharing is implemented to strictly manage which frontends are legally allowed to interact with the backend API.
+1. **AI Output Sanitization:** The execution of AI-generated SQL queries is strictly sandboxed. The backend validates and sanitizes all generated queries to prevent SQL Injection (SQLi) attacks, enforcing strict `SELECT`-only permissions.
+2. **Environment Variable Protection:** All API Keys (Groq/Gemini) and Database URLs are stripped from the source code and securely injected via Vercel/Render encrypted Environment Variables.
+3. **CORS Configuration:** Cross-Origin Resource Sharing is strictly configured to ensure only the authorized Vercel frontend can interact with the backend API.
 
 ---
 
@@ -40,19 +55,16 @@ To prevent rate-limiting and ensure 100% deliverability on massive campaigns, th
 
 This repository is organized as a full-stack monorepo:
 
-### Frontend
-- **Framework:** Next.js 15 (App Router)
-- **Styling:** CSS Modules, "Nothing Tech" inspired glassmorphic aesthetic
-- **Animations:** Framer Motion (Cinematic boot-up sequence and shared-layout transitions)
-- **Real-time:** `socket.io-client`
-
-### Backend
-- **Runtime:** Node.js + Express
-- **Database:** SQLite via **Prisma ORM**
-- **AI Model:** Google Gemini / Groq Orchestrator
-- **Real-time:** `socket.io`
-
-![Architecture Diagram Placeholder](Insert_Architecture_Diagram_URL_Here)
+- **/frontend**
+  - **Framework:** Next.js 15 (App Router)
+  - **Styling:** CSS Modules, "Nothing Tech" glassmorphic aesthetic
+  - **Animations:** Framer Motion (Cinematic boot-up sequence and shared-layout transitions)
+  - **Real-time:** `socket.io-client`
+- **/backend**
+  - **Runtime:** Node.js + Express
+  - **Database:** SQLite via **Prisma ORM**
+  - **AI Model:** Google Gemini / Groq Orchestrator
+  - **Real-time:** `socket.io`
 
 ---
 
