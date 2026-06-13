@@ -38,6 +38,8 @@ const initialActivities = [
   { id: 4, text: "Klaviyo API rate limit warning", type: "warning", time: "1h ago" },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 export default function Home() {
   const [introState, setIntroState] = useState<'loading' | 'expanding' | 'flashing' | 'done'>('loading');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -116,7 +118,7 @@ export default function Home() {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/campaigns");
+      const res = await fetch(`${API_URL}/api/campaigns`);
       const data = await res.json();
       setCampaigns(data);
     } catch (err) {
@@ -129,7 +131,7 @@ export default function Home() {
     fetchCampaigns();
     
     // Enterprise Upgrade: WebSockets replacing short-polling
-    const socket = io("http://localhost:3001");
+    const socket = io(API_URL);
     socket.on('campaign_update', () => {
       fetchCampaigns();
     });
@@ -152,7 +154,7 @@ export default function Home() {
     setActivities(prev => [{ id: Date.now(), text: `Querying database: "${promptText.substring(0, 20)}..."`, type: "info", time: "Just now" }, ...prev]);
 
     try {
-      const res = await fetch("http://localhost:3001/api/chat", {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: userMsg.content }),
@@ -181,7 +183,7 @@ export default function Home() {
 
   const handleLaunchCampaign = async (preview: CampaignPreview, msgId: string) => {
     try {
-      const res = await fetch("http://localhost:3001/api/campaign/execute", {
+      const res = await fetch(`${API_URL}/api/campaign/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
