@@ -2,10 +2,20 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import PQueue from 'p-queue';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }
+});
+
+const queue = new PQueue({ concurrency: 5 });
+
 const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
@@ -135,77 +145,91 @@ app.post('/api/webhooks/channel', async (req, res) => {
   }
 });
 
-// 5. AI Chat Assistant
+// 5. Multi-Agent AI Workflow
 app.post('/api/chat', async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
   try {
-    const systemPrompt = `You are an AI assistant for a retail CRM. The marketer will give you a goal.
-You need to return a JSON object with:
+    // --- AGENT 1: Data Analyst (Strict SQL Generation) ---
+    const analystPrompt = `You are an AI Data Analyst for a retail CRM. The marketer will give you a goal: "${prompt}"
+You must return a JSON object with:
 1. "audienceFilter": A simplified explanation of who this targets (e.g., "Customers who spent > $500").
-2. "messageDraft": A drafted message based on the marketer's request.
-3. "channel": "SMS" or "Email".
-4. "sqlCondition": A raw SQLite WHERE clause to filter the "Customer" table.
+2. "channel": "SMS" or "Email".
+3. "sqlCondition": A raw SQLite WHERE clause to filter the "Customer" table.
 Available Customer columns: id, name, email, phone, totalSpent, lastVisit, createdAt.
 Example sqlCondition: "totalSpent > 500 AND lastVisit < date('now', '-6 months')"
-CRITICAL RULE: DO NOT USE JOINs. DO NOT reference any tables other than Customer. If you cannot fulfill the prompt perfectly with the available columns, do your best using totalSpent or lastVisit.
-Ensure the JSON is strictly valid without markdown blocks.`;
+CRITICAL RULE: DO NOT USE JOINs. ONLY return JSON.`;
 
-    let data;
+    let analystData;
     for (let attempts = 0; attempts < 3; attempts++) {
       const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt }
-          ],
+          messages: [{ role: "system", content: analystPrompt }],
           response_format: { type: "json_object" }
         })
       });
-      
-      data = await response.json();
-      if (!data.error || !data.error.message.includes("high demand")) {
-        break; // Success or a different non-retryable error
-      }
-      console.log(`High demand hit. Retrying attempt ${attempts + 1}...`);
-      await new Promise(res => setTimeout(res, 1500)); // wait 1.5 seconds before retrying
+      analystData = await response.json();
+      if (!analystData.error) break;
+      await new Promise(res => setTimeout(res, 1000));
     }
+    if (analystData.error) throw new Error(analystData.error.message);
 
-    if (data.error) throw new Error(data.error.message);
+    const analystResult = JSON.parse(analystData.choices[0].message.content);
 
-    const resultText = data.choices[0].message.content;
-    const result = JSON.parse(resultText);
-
-    // Run the generated SQL query safely
+    // --- EXECUTE SQL ---
     let audience;
     try {
-      const rawQuery = `SELECT id FROM Customer WHERE ${result.sqlCondition || '1=1'} LIMIT 1000;`;
+      const rawQuery = `SELECT id FROM Customer WHERE ${analystResult.sqlCondition || '1=1'} LIMIT 1000;`;
       audience = await prisma.$queryRawUnsafe<{id: string}[]>(rawQuery);
     } catch (sqlErr) {
-      console.warn("AI generated invalid SQL, falling back to all customers", sqlErr);
+      console.warn("Agent 1 generated invalid SQL, falling back to all customers", sqlErr);
       audience = await prisma.$queryRawUnsafe<{id: string}[]>(`SELECT id FROM Customer LIMIT 1000;`);
     }
+
+    // --- AGENT 2: Brand Copywriter (Generates Message) ---
+    const copywriterPrompt = `You are an expert Brand Copywriter. You need to write a personalized message for a retail campaign.
+The marketer's goal: "${prompt}"
+The target audience: ${analystResult.audienceFilter}
+The channel: ${analystResult.channel}
+Return a JSON object with ONLY:
+1. "messageDraft": The drafted message text. Keep it concise, engaging, and suitable for the channel.`;
+
+    let copywriterData;
+    for (let attempts = 0; attempts < 3; attempts++) {
+      const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "system", content: copywriterPrompt }],
+          response_format: { type: "json_object" }
+        })
+      });
+      copywriterData = await response.json();
+      if (!copywriterData.error) break;
+      await new Promise(res => setTimeout(res, 1000));
+    }
+    if (copywriterData.error) throw new Error(copywriterData.error.message);
+
+    const copywriterResult = JSON.parse(copywriterData.choices[0].message.content);
 
     return res.json({
       success: true,
       preview: {
-        audienceFilter: result.audienceFilter,
-        messageDraft: result.messageDraft,
-        channel: result.channel,
+        audienceFilter: analystResult.audienceFilter,
+        messageDraft: copywriterResult.messageDraft,
+        channel: analystResult.channel,
         audienceSize: audience.length,
         audienceIds: audience.map(a => a.id)
       }
     });
 
   } catch (err: any) {
-    console.error("AI Error:", err);
+    console.error("AI Pipeline Error:", err);
     res.status(500).json({ error: 'AI processing failed: ' + err.message });
   }
 });
@@ -248,16 +272,23 @@ app.post('/api/campaign/execute', async (req, res) => {
       message: messageContent
     }));
 
-    // 4. Send to Stubbed Channel Service
-    const channelServiceUrl = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
-    fetch(`${channelServiceUrl}/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        campaignId: campaign.id,
-        communications
-      })
-    }).catch(err => console.error("Failed to notify channel service", err));
+    // 4. Queue the dispatch job using p-queue instead of direct unthrottled fetch
+    queue.add(async () => {
+      const channelServiceUrl = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
+      try {
+        await fetch(`${channelServiceUrl}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId: campaign.id,
+            communications
+          })
+        });
+        console.log(`Dispatched batch to channel service for campaign ${campaign.id}`);
+      } catch (err) {
+        console.error("Failed to notify channel service", err);
+      }
+    });
 
     res.json({ success: true, campaignId: campaign.id });
 
@@ -278,8 +309,8 @@ app.post('/api/webhooks/channel', async (req, res) => {
       data: { status, timestamp: new Date() }
     });
     
-    // Check if campaign is completed (all not PENDING)
-    // For a real app, this might be a cron job. Here we ignore for brevity.
+    // Emit real-time WebSocket event
+    io.emit('campaign_update', { communicationId, status });
     
     res.json({ success: true });
   } catch (err) {
@@ -321,6 +352,6 @@ app.get('/api/campaigns', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`CRM Backend API listening on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`CRM Backend API & WebSocket listening on port ${PORT}`);
 });

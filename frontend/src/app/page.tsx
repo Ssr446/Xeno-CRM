@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { io } from "socket.io-client";
 import { Terminal, BarChart2, Send, Play, RefreshCcw, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Users, Settings, Zap, Target, Mailbox, Activity, ShoppingCart, Megaphone, Cloud, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -26,6 +27,7 @@ type CampaignStats = {
   status: string;
   audienceSize: number;
   stats: Record<string, number>;
+  channel?: string;
 };
 
 // Mock Activity Feed Data
@@ -125,8 +127,16 @@ export default function Home() {
   useEffect(() => {
     if (introState !== 'done') return;
     fetchCampaigns();
-    const interval = setInterval(fetchCampaigns, 3000);
-    return () => clearInterval(interval);
+    
+    // Enterprise Upgrade: WebSockets replacing short-polling
+    const socket = io("http://localhost:3001");
+    socket.on('campaign_update', () => {
+      fetchCampaigns();
+    });
+    
+    return () => {
+      socket.disconnect();
+    };
   }, [introState]);
 
   const handleSendChat = async (overrideInput?: string) => {
@@ -232,6 +242,7 @@ export default function Home() {
                   <motion.div 
                     layoutId="sharedLogo"
                     className={styles.brandLogo} 
+                    style={{ borderRadius: "50%" }}
                     animate={{ scale: (introState === 'expanding' || introState === 'flashing') ? 2.5 : 1 }}
                     transition={{ duration: 1.8, ease: "easeInOut" }}
                   />
@@ -292,7 +303,7 @@ export default function Home() {
           {/* Left Sidebar */}
           <div className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''}`}>
             <div className={styles.sidebarHeader}>
-              <button className={styles.toggleBtn} onClick={() => setIsSidebarOpen(false)}>
+              <button className={styles.toggleBtn} onClick={() => setIsSidebarOpen(false)} title="Close Navigation">
                 <PanelLeftClose size={16} />
                 <span className={styles.kbdHint}>[</span>
               </button>
@@ -340,7 +351,7 @@ export default function Home() {
           {/* Right Sidebar (Activity Feed) */}
           <div className={`${styles.rightSidebar} ${!isActivityOpen ? styles.rightSidebarClosed : ''}`}>
             <div className={styles.rightSidebarTitle}>
-              <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(false)} style={{ float: 'right', marginTop: '-4px', marginRight: '-8px' }}>
+              <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(false)} style={{ float: 'right', marginTop: '-4px', marginRight: '-8px' }} title="Close Activity Feed">
                 <PanelRightClose size={16} />
                 <span className={styles.kbdHint}>]</span>
               </button>
@@ -372,14 +383,14 @@ export default function Home() {
               
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
                 <div className={styles.topCenterHeader} style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
-                  <motion.div layoutId="sharedLogo" className={`${styles.brandLogo} ${styles.brandLogoSmall}`} />
+                  <motion.div layoutId="sharedLogo" className={`${styles.brandLogo} ${styles.brandLogoSmall}`} style={{ borderRadius: "50%" }} />
                   <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.8}} className={styles.logo}>xeno</motion.div>
                 </div>
               </div>
 
               <div className={styles.topHeader}>
                 {!isSidebarOpen && (
-                  <button className={styles.toggleBtn} onClick={() => setIsSidebarOpen(true)}>
+                  <button className={styles.toggleBtn} onClick={() => setIsSidebarOpen(true)} title="Open Navigation">
                     <PanelLeftOpen size={16} />
                     <span className={styles.kbdHint}>[</span>
                   </button>
@@ -392,7 +403,7 @@ export default function Home() {
                 </h1>
                 <div style={{ flex: 1 }} />
                 {!isActivityOpen && (
-                  <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(true)}>
+                  <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(true)} title="Open Activity Feed">
                     <span className={styles.kbdHint}>]</span>
                     <PanelRightOpen size={16} />
                   </button>
