@@ -32,8 +32,9 @@ app.get('/api/customers', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     res.json(customers);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch customers' });
+  } catch (err: any) {
+    console.error("PRISMA ERROR:", err);
+    res.status(500).json({ error: 'Failed to fetch customers', details: err.message });
   }
 });
 
