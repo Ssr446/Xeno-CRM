@@ -72,7 +72,7 @@ This repository is organized as a full-stack monorepo:
 ```mermaid
 graph TD
     User([Business User]) -->|Natural Language Prompt| NextJS[Next.js 15 Frontend<br/>Vercel]
-    NextJS <-->|Real-Time WebSockets| Express[Node.js + Express Backend<br/>Render]
+    NextJS <-->|Real-Time WebSockets via Socket.io| Express[Node.js + Express Backend<br/>Render]
     
     Express -->|Prompt| Orchestrator{AI Orchestrator<br/>Intent Engine}
     
