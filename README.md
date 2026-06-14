@@ -8,7 +8,7 @@
 
 <!-- 📸 PHOTO PLACEHOLDER 1: Add a high-quality Hero Banner image here -->
 <div align="center">
-  <img src="./hero_banner.png" alt="Upload hero_banner.png here">
+  <img src="./hero_banner .png" alt="Upload hero_banner.png here">
 </div>
 
 <br>
