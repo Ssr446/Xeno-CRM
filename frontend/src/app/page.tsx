@@ -472,9 +472,9 @@ export default function Home() {
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                               {m.role === 'ai' ? <Terminal size={16} color="#888" style={{marginTop: '2px'}} /> : null}
                               <div style={{ flex: 1, lineHeight: '1.5' }}>
-                                {m.content.split('\\n').map((line: string, i: number) => (
+                                {m.content.split('\n').map((line: string, i: number) => (
                                   <React.Fragment key={i}>
-                                    {line.split(/(\\*\\*.*?\\*\\*)/).map((part: string, j: number) => {
+                                    {line.split(/(\*\*.*?\*\*)/).map((part: string, j: number) => {
                                       if (part.startsWith('**') && part.endsWith('**')) {
                                         return <strong key={j} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>;
                                       }
