@@ -202,7 +202,7 @@ Table schemas:
 - Order(id, customerId, productName, quantity, amount, date)
 
 Example sqlCondition (segmentation): "profileSegment = 'High' AND satisfactionRating < 5"
-Example sqlQuery (analytics): "SELECT productName, SUM(amount) as totalSales FROM \`Order\` GROUP BY productName ORDER BY totalSales DESC LIMIT 1"
+Example sqlQuery (analytics): "SELECT productName, SUM(amount) as totalSales FROM \\"Order\\" GROUP BY productName ORDER BY totalSales DESC LIMIT 1"
 
 CRITICAL: Return ONLY valid JSON.`;
 
@@ -228,6 +228,7 @@ CRITICAL: Return ONLY valid JSON.`;
     // If Analytics Intent, run query and format beautifully via LLM
     if (analystResult.intent === 'analytics' && analystResult.sqlQuery) {
       try {
+        console.log("GENERATED SQL QUERY:", analystResult.sqlQuery);
         const queryResult = await prisma.$queryRawUnsafe(analystResult.sqlQuery);
         
         // Use AI to format the raw JSON into a beautiful insight
