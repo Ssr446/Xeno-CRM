@@ -190,6 +190,11 @@ app.post('/api/chat', async (req, res) => {
     // --- AGENT 1: Data Analyst (Strict SQL Generation & Intent Detection) ---
     const analystPrompt = `You are an AI Data Analyst for a retail CRM. The user will give you a prompt: "${prompt}"
 Determine if the user wants to TARGET an audience (segmentation) or ASK a business question (analytics).
+
+CRITICAL INTENT RULES:
+- If the prompt mentions sending a message, offering a discount, or targeting/emailing customers, intent MUST be "segmentation".
+- If the prompt is purely informational (e.g., "what is the highest sold product", "how many customers do we have"), intent MUST be "analytics".
+
 Return a JSON object with:
 1. "intent": "segmentation" or "analytics"
 2. "audienceFilter": (if segmentation) A simplified explanation of who this targets.
