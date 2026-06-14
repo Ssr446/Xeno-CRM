@@ -6,9 +6,9 @@
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-blue?style=for-the-badge&logo=prisma)]()
 [![Socket.io](https://img.shields.io/badge/Socket.io-WebSockets-black?style=for-the-badge&logo=socket.io)]()
 
-<!-- 🖼️ PLACEHOLDER: HERO IMAGE / BANNER (Upload your image to the repository and name it 'hero_banner.png') -->
+<!-- 📸 PHOTO PLACEHOLDER 1: Add a high-quality Hero Banner image here -->
 <div align="center">
-  <img src="hero_banner.png" alt="Xeno CRM Hero Banner">
+  <img src="./hero_banner.png" alt="Upload hero_banner.png here">
 </div>
 
 <br>
@@ -17,37 +17,45 @@
 
 ---
 
-## 🌟 Live Demo
-Experience the full-stack application deployed live on the cloud:
+## 🌟 Live Cloud Deployment
+The application is fully hosted on the cloud. The frontend is deployed via **Vercel** and the backend API (including WebSockets and AI routing) is hosted on **Render**.
 
-👉 **[Try Xeno CRM Live Here (Frontend)](https://xeno-crm-bice-kappa.vercel.app/)**  
+👉 **[Launch Frontend (Vercel)](https://xeno-crm-bice-kappa.vercel.app/)**  
 👉 **[Backend API Endpoint (Render)](https://xeno-crm-st4n.onrender.com)**
 
-<!-- 🖼️ PLACEHOLDER: APPLICATION DEMO GIF / SCREENSHOT (Upload your GIF/Image to the repository and name it 'demo.png') -->
+<!-- 📸 PHOTO PLACEHOLDER 2: Add a GIF or Screenshot of the Dashboard here -->
 <div align="center">
   <br>
-  <img src="demo.png" alt="Xeno CRM Demo">
-  <p><i>Example of Xeno CRM's cinematic interface and Multi-Agent AI in action.</i></p>
+  <img src="./dashboard_preview.png" alt="Upload dashboard_preview.png here">
+  <p><i>Xeno CRM's cinematic interface and Multi-Agent AI in action.</i></p>
 </div>
 
 ---
 
-## ✨ Key Business Features
+## ✨ Enterprise Business Features
 
-- **Multi-Agent AI Architecture:** Instead of relying on a single large prompt, an Orchestrator AI delegates tasks to specialized sub-agents:
-  - **Query Agent:** Translates human intent into raw SQLite database queries.
+- **Advanced AI Intent Detection (BI Analytics):** The Orchestrator AI now possesses a dual-intent engine. It intelligently differentiates between a **Segmentation Request** (e.g., "Target VIP customers for a campaign") and an **Analytical Request** (e.g., "What product generated the highest sales?"). For analytics, it executes complex SQL `JOIN`s and utilizes a separate Data Presenter LLM to output beautifully formatted, natural-language business insights directly into the chat.
+- **Dynamic Customer Profiling:** The Customer Directory scales dynamically from the database. Users can click on any individual row to elegantly slide open a "Profile Module" which queries their historical transaction records (exact products, quantities, and order amounts).
+- **Interactive Satisfaction Drill-Downs:** Visual funnel bars on the dashboard are fully interactive. Clicking a satisfaction tier (e.g., "1 Star Rating") seamlessly queries the SQLite database and expands to reveal exactly which users left that rating, along with their raw text feedback.
+- **Multi-Agent AI Architecture:** When drafting campaigns, the Orchestrator AI delegates tasks to specialized sub-agents:
+  - **Query Agent:** Translates human intent into raw SQLite database segmentation queries.
   - **Copywriter Agent:** Drafts personalized, high-converting marketing copy.
-  - **Audience Agent:** Analyzes the demographic and calculates audience size.
 - **Real-Time WebSocket Infrastructure:** Replaces traditional HTTP polling with persistent **Socket.io WebSockets**. Live campaign status updates (Drafting → Generating Audience → Executing) are pushed instantly to the dashboard.
-- **P-Queue Concurrency Control:** Prevents rate-limiting and ensures 100% deliverability on massive campaigns by artificially controlling the concurrency of outgoing requests (e.g., simulating 5 requests/second).
+
+<!-- 📸 PHOTO PLACEHOLDER 3: Add a Screenshot of the new Analytical Insight AI Chat response here -->
+<div align="center">
+  <br>
+  <img src="./ai_analytics.png" alt="Upload ai_analytics.png here">
+  <p><i>The AI generating raw analytical insights via database querying.</i></p>
+</div>
 
 ---
 
 ## 🔒 Enterprise Security Aspects
 
-1. **AI Output Sanitization:** The execution of AI-generated SQL queries is strictly sandboxed. The backend validates and sanitizes all generated queries to prevent SQL Injection (SQLi) attacks, enforcing strict `SELECT`-only permissions.
-2. **Environment Variable Protection:** All API Keys (Groq/Gemini) and Database URLs are stripped from the source code and securely injected via Vercel/Render encrypted Environment Variables.
-3. **CORS Configuration:** Cross-Origin Resource Sharing is strictly configured to ensure only the authorized Vercel frontend can interact with the backend API.
+1. **AI Output Sanitization & Strict Intent:** The execution of AI-generated SQL queries is strictly sandboxed. The prompt architecture explicitly defines bounds (no malicious schemas) and Prisma handles database execution securely to minimize injection vectors.
+2. **Environment Variable Protection:** All API Keys (Groq) and Database configurations are stripped from the source code and securely injected via Vercel/Render encrypted Environment Variables.
+3. **CORS Configuration:** Cross-Origin Resource Sharing is strictly configured to ensure only the authorized Vercel frontend domain can interface with the Render backend API.
 
 ---
 
@@ -58,12 +66,11 @@ This repository is organized as a full-stack monorepo:
 - **/frontend**
   - **Framework:** Next.js 15 (App Router)
   - **Styling:** CSS Modules, "Nothing Tech" glassmorphic aesthetic
-  - **Animations:** Framer Motion (Cinematic boot-up sequence and shared-layout transitions)
-  - **Real-time:** `socket.io-client`
+  - **Animations:** Framer Motion (Cinematic boot-up sequence, dynamic layout modules)
 - **/backend**
   - **Runtime:** Node.js + Express
   - **Database:** SQLite via **Prisma ORM**
-  - **AI Model:** Google Gemini / Groq Orchestrator
+  - **AI Model:** Llama 3.1 / Groq Orchestrator
   - **Real-time:** `socket.io`
 
 ---
