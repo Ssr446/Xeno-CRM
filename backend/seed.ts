@@ -13,6 +13,16 @@ function randomDate(start: Date, end: Date) {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
+const products = ["Summer Collection", "Winter Jacket", "Running Shoes", "Cotton T-Shirt", "Leather Wallet", "Designer Sunglasses", "Denim Jeans", "Smart Watch"];
+
+function getFeedback(rating: number): string {
+  if (rating === 1) return randomElement(["Terrible support.", "Shipping took forever.", "Item arrived damaged.", "Too expensive for the quality.", "Completely unresponsive."]);
+  if (rating === 2) return randomElement(["Not great, but okay.", "Could be better.", "A bit disappointed.", "Overpriced.", "Average experience."]);
+  if (rating === 3) return randomElement(["It was fine.", "Met expectations.", "Decent.", "Nothing special.", "Okay."]);
+  if (rating === 4) return randomElement(["Pretty good!", "I liked it.", "Good value.", "Fast shipping.", "Will buy again."]);
+  return randomElement(["Incredible shipping speed!", "Absolutely love it!", "Best purchase ever.", "Amazing customer service.", "Highly recommended!"]);
+}
+
 async function main() {
   console.log("Seeding database...");
   
@@ -59,6 +69,9 @@ async function main() {
     for (let j = 0; j < numOrders; j++) {
       const amount = Math.round((Math.random() * 200 + 10) * 100) / 100;
       const date = randomDate(customer.createdAt, new Date());
+      const productName = randomElement(products);
+      const quantity = Math.floor(Math.random() * 3) + 1;
+      
       totalSpent += amount;
       if (date > lastVisit) lastVisit = date;
       
@@ -66,18 +79,30 @@ async function main() {
         data: {
           customerId: customer.id,
           amount,
-          date
+          date,
+          productName,
+          quantity
         }
       });
       orderCount++;
     }
     
-    // Update customer with total spent and last visit
+    let profileSegment = "Low";
+    if (totalSpent > 500) profileSegment = "High";
+    else if (totalSpent >= 200) profileSegment = "Medium";
+
+    const satisfactionRating = Math.floor(Math.random() * 5) + 1; // 1 to 5
+    const feedbackComment = getFeedback(satisfactionRating);
+
+    // Update customer with total spent, segment, rating, feedback, and last visit
     if (numOrders > 0) {
        await prisma.customer.update({
          where: { id: customer.id },
          data: {
            totalSpent: Math.round(totalSpent * 100) / 100,
+           profileSegment,
+           satisfactionRating,
+           feedbackComment,
            lastVisit
          }
        });

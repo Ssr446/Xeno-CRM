@@ -27,14 +27,49 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // 1. Fetch Customers with optional filtering
 app.get('/api/customers', async (req, res) => {
   try {
+    const includeOrders = req.query.includeOrders === 'true';
     const customers = await prisma.customer.findMany({
       take: 100, // Limit for UI performance
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: includeOrders ? { orders: true } : undefined
     });
     res.json(customers);
   } catch (err: any) {
     console.error("PRISMA ERROR:", err);
     res.status(500).json({ error: 'Failed to fetch customers', details: err.message });
+  }
+});
+
+// 1.5 Fetch Customer Satisfaction Analytics
+app.get('/api/analytics/satisfaction', async (req, res) => {
+  try {
+    const ratings = await prisma.customer.groupBy({
+      by: ['satisfactionRating'],
+      _count: true
+    });
+    // Format into an array of 1 to 5
+    const result = [1, 2, 3, 4, 5].map(rating => {
+      const found = ratings.find(r => r.satisfactionRating === rating);
+      return { rating, count: found ? found._count : 0 };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// 1.6 Fetch Customer Comments by Rating
+app.get('/api/analytics/satisfaction/:rating', async (req, res) => {
+  try {
+    const rating = parseInt(req.params.rating);
+    const customers = await prisma.customer.findMany({
+      where: { satisfactionRating: rating },
+      select: { name: true, feedbackComment: true },
+      take: 20
+    });
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch comments' });
   }
 });
 
@@ -152,15 +187,24 @@ app.post('/api/chat', async (req, res) => {
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
   try {
-    // --- AGENT 1: Data Analyst (Strict SQL Generation) ---
-    const analystPrompt = `You are an AI Data Analyst for a retail CRM. The marketer will give you a goal: "${prompt}"
-You must return a JSON object with:
-1. "audienceFilter": A simplified explanation of who this targets (e.g., "Customers who spent > $500").
-2. "channel": "SMS" or "Email".
-3. "sqlCondition": A raw SQLite WHERE clause to filter the "Customer" table.
-Available Customer columns: id, name, email, phone, totalSpent, lastVisit, createdAt.
-Example sqlCondition: "totalSpent > 500 AND lastVisit < date('now', '-6 months')"
-CRITICAL RULE: DO NOT USE JOINs. ONLY return JSON.`;
+    // --- AGENT 1: Data Analyst (Strict SQL Generation & Intent Detection) ---
+    const analystPrompt = `You are an AI Data Analyst for a retail CRM. The user will give you a prompt: "${prompt}"
+Determine if the user wants to TARGET an audience (segmentation) or ASK a business question (analytics).
+Return a JSON object with:
+1. "intent": "segmentation" or "analytics"
+2. "audienceFilter": (if segmentation) A simplified explanation of who this targets.
+3. "channel": (if segmentation) "SMS" or "Email".
+4. "sqlQuery": (if analytics) A complete SQLite query to answer their business question. You can JOIN Customer and Order tables.
+5. "sqlCondition": (if segmentation) A raw SQLite WHERE clause to filter the "Customer" table.
+
+Table schemas:
+- Customer(id, name, email, phone, totalSpent, profileSegment, satisfactionRating, lastVisit, createdAt)
+- Order(id, customerId, productName, quantity, amount, date)
+
+Example sqlCondition (segmentation): "profileSegment = 'High' AND satisfactionRating < 5"
+Example sqlQuery (analytics): "SELECT productName, SUM(amount) as totalSales FROM \`Order\` GROUP BY productName ORDER BY totalSales DESC LIMIT 1"
+
+CRITICAL: Return ONLY valid JSON.`;
 
     let analystData;
     for (let attempts = 0; attempts < 3; attempts++) {
@@ -181,7 +225,41 @@ CRITICAL RULE: DO NOT USE JOINs. ONLY return JSON.`;
 
     const analystResult = JSON.parse(analystData.choices[0].message.content);
 
-    // --- EXECUTE SQL ---
+    // If Analytics Intent, run query and format beautifully via LLM
+    if (analystResult.intent === 'analytics' && analystResult.sqlQuery) {
+      try {
+        const queryResult = await prisma.$queryRawUnsafe(analystResult.sqlQuery);
+        
+        // Use AI to format the raw JSON into a beautiful insight
+        const formatterPrompt = `You are an expert Data Presenter for a CRM.
+The user asked this analytical question: "${prompt}"
+The database returned this raw JSON data: ${JSON.stringify(queryResult)}
+Write a beautiful, concise 1-2 sentence insight summarizing this data for the user. Use markdown bolding for key metrics. Do not include raw JSON.`;
+
+        const formatResponse = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: [{ role: "system", content: formatterPrompt }]
+          })
+        });
+        const formatData = await formatResponse.json();
+        const beautifulInsight = formatData.choices?.[0]?.message?.content || `**Analytical Insight:**\n\n\`\`\`json\n${JSON.stringify(queryResult, null, 2)}\n\`\`\``;
+
+        return res.json({
+          response: {
+            role: "ai",
+            content: beautifulInsight
+          }
+        });
+      } catch (sqlErr) {
+        console.error("SQL Error:", sqlErr);
+        return res.status(500).json({ error: "Failed to execute analytical query." });
+      }
+    }
+
+    // --- EXECUTE SQL (Segmentation) ---
     let audience;
     try {
       const rawQuery = `SELECT id FROM Customer WHERE ${analystResult.sqlCondition || '1=1'} LIMIT 1000;`;

@@ -175,8 +175,7 @@
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  right: 0;
+  position: sticky;
   top: 0;
   height: 100vh;
   z-index: 40;

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
-import { Terminal, BarChart2, Send, Play, RefreshCcw, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Users, Settings, Zap, Target, Mailbox, Activity, ShoppingCart, Megaphone, Cloud, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Terminal, BarChart2, Send, Play, RefreshCcw, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Users, Settings, Zap, Target, Mailbox, Activity, ShoppingCart, Megaphone, Cloud, Clock, CheckCircle2, AlertCircle, Heart, PieChart } from "lucide-react";
 import styles from "./page.module.css";
 
 type Message = {
@@ -49,6 +49,11 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState<CampaignStats[]>([]);
+  const [customersList, setCustomersList] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [satisfactionStats, setSatisfactionStats] = useState<{rating: number, count: number}[]>([]);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [ratingComments, setRatingComments] = useState<any[]>([]);
   const [activities, setActivities] = useState(initialActivities);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -116,6 +121,26 @@ export default function Home() {
     target.style.setProperty("--mouse-y", `${y}px`);
   };
 
+  const fetchCustomersList = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/customers?includeOrders=true`);
+      const data = await res.json();
+      setCustomersList(data);
+    } catch (err) {
+      console.error("Failed to fetch customers");
+    }
+  };
+
+  const fetchRatingComments = async (rating: number) => {
+    try {
+      const res = await fetch(`${API_URL}/api/analytics/satisfaction/${rating}`);
+      const data = await res.json();
+      setRatingComments(data);
+    } catch (err) {
+      console.error("Failed to fetch comments");
+    }
+  };
+
   const fetchCampaigns = async () => {
     try {
       const res = await fetch(`${API_URL}/api/campaigns`);
@@ -126,9 +151,21 @@ export default function Home() {
     }
   };
 
+  const fetchSatisfaction = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/analytics/satisfaction`);
+      const data = await res.json();
+      setSatisfactionStats(data);
+    } catch (err) {
+      console.error("Failed to fetch satisfaction stats");
+    }
+  };
+
   useEffect(() => {
     if (introState !== 'done') return;
     fetchCampaigns();
+    fetchSatisfaction();
+    fetchCustomersList();
     
     // Enterprise Upgrade: WebSockets replacing short-polling
     const socket = io(API_URL);
@@ -161,7 +198,10 @@ export default function Home() {
       });
       const data = await res.json();
 
-      if (data.success) {
+      if (data.response) {
+        setMessages((prev) => [...prev, { ...data.response, id: Date.now().toString() }]);
+        setActivities(prev => [{ id: Date.now(), text: `AI Analyst executed query.`, type: "success", time: "Just now" }, ...prev]);
+      } else if (data.success) {
         setMessages((prev) => [
           ...prev,
           {
@@ -333,6 +373,12 @@ export default function Home() {
               >
                 <Users size={14} /> Customers
               </div>
+              <div 
+                className={`${styles.navItem} ${activeTab === 'satisfaction' ? styles.active : ''}`}
+                onClick={() => setActiveTab('satisfaction')}
+              >
+                <Heart size={14} /> Satisfaction
+              </div>
               
               <div className={styles.navGroup}>Platform</div>
               <div 
@@ -350,35 +396,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Sidebar (Activity Feed) */}
-          <div className={`${styles.rightSidebar} ${!isActivityOpen ? styles.rightSidebarClosed : ''}`}>
-            <div className={styles.rightSidebarTitle}>
-              <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(false)} style={{ float: 'right', marginTop: '-4px', marginRight: '-8px' }} title="Close Activity Feed">
-                <PanelRightClose size={16} />
-                <span className={styles.kbdHint}>]</span>
-              </button>
-              <Activity size={12} style={{ display: 'inline', marginRight: '6px', marginBottom: '-2px' }} />
-              Live Activity
-            </div>
-            <div className={styles.activityFeed}>
-              <AnimatePresence>
-                {activities.map((act) => (
-                  <motion.div 
-                    key={act.id} 
-                    className={styles.activityItem}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    <div className={`${styles.activityDot} ${styles[act.type]}`} />
-                    <div className={styles.activityContent}>
-                      <div className={styles.activityText}>{act.text}</div>
-                      <div className={styles.activityTime}>{act.time}</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
+
 
           <div className={`${styles.mainContentWrapper} ${!isSidebarOpen ? styles.mainContentWrapperExpanded : ''}`}>
             <div className={styles.mainContent}>
@@ -401,6 +419,7 @@ export default function Home() {
                   {activeTab === 'chat' ? 'Command Interface' : 
                    activeTab === 'campaigns' ? 'Analytics' : 
                    activeTab === 'customers' ? 'Customer Directory' : 
+                   activeTab === 'satisfaction' ? 'Customer Satisfaction' : 
                    activeTab === 'integrations' ? 'Integrations' : 'Settings'}
                 </h1>
                 <div style={{ flex: 1 }} />
@@ -652,33 +671,117 @@ export default function Home() {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td>Sarah Jenkins</td>
-                            <td style={{color: 'var(--text-secondary)'}}>sarah.j@example.com</td>
-                            <td>$1,240.00</td>
-                            <td style={{color: 'var(--text-secondary)'}}>2 days ago</td>
-                            <td><div className="statusPill success">VIP</div></td>
-                          </tr>
-                          <tr>
-                            <td>Michael Chen</td>
-                            <td style={{color: 'var(--text-secondary)'}}>m.chen88@example.com</td>
-                            <td>$450.00</td>
-                            <td style={{color: 'var(--text-secondary)'}}>3 weeks ago</td>
-                            <td><div className="statusPill warning">Active</div></td>
-                          </tr>
-                          <tr>
-                            <td>Emma Watson</td>
-                            <td style={{color: 'var(--text-secondary)'}}>emma.w@example.com</td>
-                            <td>$89.00</td>
-                            <td style={{color: 'var(--text-secondary)'}}>6 months ago</td>
-                            <td><div className="statusPill danger">Dormant</div></td>
-                          </tr>
+                          {customersList.map(customer => (
+                            <React.Fragment key={customer.id}>
+                              <tr onClick={() => setSelectedCustomer(selectedCustomer?.id === customer.id ? null : customer)} style={{ cursor: 'pointer' }}>
+                                <td>{customer.name}</td>
+                                <td style={{color: 'var(--text-secondary)'}}>{customer.email}</td>
+                                <td>${customer.totalSpent.toFixed(2)}</td>
+                                <td style={{color: 'var(--text-secondary)'}}>{new Date(customer.lastVisit).toLocaleDateString()}</td>
+                                <td>
+                                  <div className={`statusPill ${customer.profileSegment === 'High' ? 'success' : customer.profileSegment === 'Medium' ? 'warning' : 'danger'}`}>
+                                    {customer.profileSegment}
+                                  </div>
+                                </td>
+                              </tr>
+                              {selectedCustomer?.id === customer.id && (
+                                <tr>
+                                  <td colSpan={5} style={{ padding: 0, borderBottom: '1px solid var(--border-glass)' }}>
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} style={{ overflow: 'hidden', background: 'rgba(255,255,255,0.02)', padding: '16px' }}>
+                                      <h4 style={{ fontSize: '0.9rem', marginBottom: '8px' }}>Order History</h4>
+                                      {customer.orders && customer.orders.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                          {customer.orders.map((o: any) => (
+                                            <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                              <span>{o.quantity}x {o.productName}</span>
+                                              <span>${o.amount.toFixed(2)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No orders yet.</div>
+                                      )}
+                                    </motion.div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          ))}
                         </tbody>
                       </table>
                     </div>
                   </div>
                 </motion.div>
               )}
+
+              {activeTab === 'satisfaction' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <div className="glassPanel">
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 500, marginBottom: '24px' }}>Satisfaction Distribution</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
+                      {satisfactionStats.sort((a, b) => b.rating - a.rating).map(stat => {
+                        const maxCount = Math.max(...satisfactionStats.map(s => s.count), 1);
+                        const percentage = (stat.count / maxCount) * 100;
+                        const isSelected = selectedRating === stat.rating;
+                        return (
+                          <div key={stat.rating} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div 
+                              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', padding: '4px', borderRadius: '4px', background: isSelected ? 'rgba(255,255,255,0.05)' : 'transparent' }}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedRating(null);
+                                  setRatingComments([]);
+                                } else {
+                                  setSelectedRating(stat.rating);
+                                  fetchRatingComments(stat.rating);
+                                }
+                              }}
+                            >
+                              <div style={{ width: '60px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {stat.rating} <Heart size={14} fill={stat.rating >= 4 ? '#4ade80' : stat.rating === 3 ? '#fbbf24' : '#ef4444'} color={stat.rating >= 4 ? '#4ade80' : stat.rating === 3 ? '#fbbf24' : '#ef4444'} />
+                              </div>
+                              <div className={styles.funnelBarBg} style={{ flex: 1, height: '12px' }}>
+                                <motion.div 
+                                  className={styles.funnelBarFill} 
+                                  style={{ background: stat.rating >= 4 ? '#4ade80' : stat.rating === 3 ? '#fbbf24' : '#ef4444' }} 
+                                  initial={{ width: 0 }} 
+                                  animate={{ width: `${percentage}%` }} 
+                                />
+                              </div>
+                              <div style={{ width: '40px', textAlign: 'right' }}>{stat.count}</div>
+                            </div>
+                            
+                            <AnimatePresence>
+                              {isSelected && (
+                                <motion.div 
+                                  initial={{ height: 0, opacity: 0 }} 
+                                  animate={{ height: 'auto', opacity: 1 }} 
+                                  exit={{ height: 0, opacity: 0 }}
+                                  style={{ overflow: 'hidden', paddingLeft: '76px' }}
+                                >
+                                  {ratingComments.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+                                      {ratingComments.map((c, i) => (
+                                        <div key={i} style={{ padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                                          <div style={{ fontWeight: 500, marginBottom: '2px' }}>{c.name}</div>
+                                          <div style={{ color: 'var(--text-secondary)' }}>"{c.feedbackComment}"</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Loading comments...</div>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
 
               {activeTab === 'integrations' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -748,6 +851,36 @@ export default function Home() {
                 </motion.div>
               )}
 
+            </div>
+          </div>
+
+          {/* Right Sidebar (Activity Feed) */}
+          <div className={`${styles.rightSidebar} ${!isActivityOpen ? styles.rightSidebarClosed : ''}`}>
+            <div className={styles.rightSidebarTitle}>
+              <button className={styles.toggleBtn} onClick={() => setIsActivityOpen(false)} style={{ float: 'right', marginTop: '-4px', marginRight: '-8px' }} title="Close Activity Feed">
+                <PanelRightClose size={16} />
+                <span className={styles.kbdHint}>]</span>
+              </button>
+              <Activity size={12} style={{ display: 'inline', marginRight: '6px', marginBottom: '-2px' }} />
+              Live Activity
+            </div>
+            <div className={styles.activityFeed}>
+              <AnimatePresence>
+                {activities.map((act) => (
+                  <motion.div 
+                    key={act.id} 
+                    className={styles.activityItem}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                  >
+                    <div className={`${styles.activityDot} ${styles[act.type]}`} />
+                    <div className={styles.activityContent}>
+                      <div className={styles.activityText}>{act.text}</div>
+                      <div className={styles.activityTime}>{act.time}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>

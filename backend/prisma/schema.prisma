@@ -13,6 +13,9 @@ model Customer {
   email            String   @unique
   phone            String?
   totalSpent       Float    @default(0)
+  profileSegment   String   @default("Low") // "High", "Medium", "Low"
+  satisfactionRating Int    @default(3)     // 1 to 5
+  feedbackComment  String?
   lastVisit        DateTime @default(now())
   createdAt        DateTime @default(now())
   
@@ -23,6 +26,8 @@ model Customer {
 model Order {
   id         String   @id @default(uuid())
   customerId String
+  productName String  @default("General Item")
+  quantity   Int      @default(1)
   amount     Float
   date       DateTime @default(now())
   
