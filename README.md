@@ -63,15 +63,31 @@ The application is fully hosted on the cloud. The frontend is deployed via **Ver
 
 This repository is organized as a full-stack monorepo:
 
-- **/frontend**
-  - **Framework:** Next.js 15 (App Router)
-  - **Styling:** CSS Modules, "Nothing Tech" glassmorphic aesthetic
-  - **Animations:** Framer Motion (Cinematic boot-up sequence, dynamic layout modules)
-- **/backend**
-  - **Runtime:** Node.js + Express
-  - **Database:** SQLite via **Prisma ORM**
-  - **AI Model:** Llama 3.1 / Groq Orchestrator
-  - **Real-time:** `socket.io`
+- **/frontend**: Next.js 15 (App Router), CSS Modules, Framer Motion
+- **/backend**: Node.js + Express, Prisma ORM, SQLite, Socket.io
+- **AI Core**: Groq/Llama-3-based Orchestrator with Multi-Agent delegation
+
+### System Architecture Diagram
+
+```mermaid
+graph TD
+    User([Business User]) -->|Natural Language Prompt| NextJS[Next.js 15 Frontend<br/>Vercel]
+    NextJS <-->|Real-Time WebSockets| Express[Node.js + Express Backend<br/>Render]
+    
+    Express -->|Prompt| Orchestrator{AI Orchestrator<br/>Intent Engine}
+    
+    Orchestrator -->|Intent: Segmentation| Copywriter[Copywriter Agent]
+    Orchestrator -->|Intent: Analytics| Analyst[Data Analyst Agent]
+    
+    Analyst -->|Generates SQL| Prisma[Prisma ORM]
+    Prisma -->|Executes Query| SQLite[(SQLite Database)]
+    SQLite -->|Raw JSON Data| Presenter[Data Presenter Agent]
+    Presenter -->|Formatted Insight| Express
+    
+    Copywriter -->|Draft & Audience| Express
+    
+    Express -->|Push Delivery Stats| NextJS
+```
 
 ---
 
